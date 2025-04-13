@@ -163,7 +163,7 @@ services:
       start_period: 10s
 
   timescaledb:
-    image: timescale/timescaledb:latest-pg14
+    image: timescale/timescaledb-ha:pg17
     container_name: timescaledb
     environment:
       POSTGRES_DB: ${TIMESCALE_NAME}

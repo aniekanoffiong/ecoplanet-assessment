@@ -4,14 +4,9 @@ import http, { Server } from 'http';
 import { HttpError } from 'http-errors';
 import dotenv from 'dotenv';
 import AggregateService from './modules/aggregate/aggregate.service';
-import { AppDataSource } from './db/data-source';
 import { TimescaleDataSource } from './db/timescale-data-source';
 
 dotenv.config();
-
-AppDataSource.initialize()
-  .then(() => console.log('Typeorm successfully initialized'))
-  .catch((error) => console.log(`unable to initialize typeorm postgres ${error}`, error));
 
 TimescaleDataSource.initialize()
   .then(() => console.log('Typeorm successfully initialized for timescale DB'))

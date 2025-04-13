@@ -18,6 +18,6 @@ kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists \
   --topic dataBacklogDataTopic --partitions 3 --replication-factor 1
 
 kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists \
-  --topic dataProcessingTopic --partitions 3 --replication-factor 1
+  --topic dataAggregationTopic --partitions 3 --replication-factor 1
 
 echo "Topics created (if they didn't exist already)."
