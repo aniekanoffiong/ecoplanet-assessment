@@ -1,0 +1,198 @@
+version: '3.8'
+
+services:
+  ingestion-service:
+    build:
+      context: ./ingestion-service
+    ports:
+      - "3001:3000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_started
+    volumes:
+      - './ingestion-service:/app'
+    environment:
+      KAFKA_BROKER: kafka:9092
+    networks:
+      - app-network
+
+  data-processing-service:
+    build:
+      context: ./data-processing-service
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_started
+    volumes:
+      - './data-processing-service:/app'
+    environment:
+      KAFKA_BROKER: kafka:9092
+      POSTGRES_HOST: postgres
+    networks:
+      - app-network
+
+  data-aggregation-service:
+    build:
+      context: ./data-aggregation-service
+    ports:
+      - "3003:3000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_started
+      timescaledb:
+        condition: service_started
+      redis:
+        condition: service_started
+    volumes:
+      - './data-aggregation-service:/app'
+    environment:
+      KAFKA_BROKER: kafka:9092
+      TIMESCALE_HOST: timescaledb
+      REDIS_HOST: redis
+    networks:
+      - app-network
+
+  backlog-service:
+    build:
+      context: ./backlog-service
+    ports:
+      - "3004:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-topics:
+        condition: service_started
+    volumes:
+      - './backlog-service:/app'
+    environment:
+      KAFKA_BROKER: kafka:9092
+      POSTGRES_HOST: postgres
+    networks:
+      - app-network
+
+  external-meters:
+    build:
+      context: ./external-meters
+    ports:
+      - "3005:3000"
+    volumes:
+      - './external-meters:/app'
+    networks:
+      - app-network
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_KRAFT_MODE=true  # Enable KRaft mode
+      - KAFKA_CFG_NODE_ID=1        # Set a unique node ID
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker  # Kafka should run as both broker and controller
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_CFG_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL=PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093  # Controller quorum (1 node setup in this case)
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_LOG_RETENTION_HOURS=168
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CLUSTER_ID=J6WRLS47Ty6tHg9q2dNxqQ
+      - KAFKA_LOG4J_LOGGERS=org.apache.kafka=DEBUG,org.apache.zookeeper=DEBUG
+    networks:
+      - app-network
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
+  kafka-topics:
+    image: bitnami/kafka:latest  # Same image as Kafka (has kafka-topics.sh)
+    depends_on:
+      kafka:
+        condition: service_healthy  # Wait for Kafka to be ready
+    command:
+      - bash
+      - -c
+      - |
+        chmod +x /opt/bitnami/kafka/scripts/create-topics.sh && /opt/bitnami/kafka/scripts/create-topics.sh
+    volumes:
+      - ./create-topics.sh:/opt/bitnami/kafka/scripts/create-topics.sh  # Mount your script
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${DATABASE_HOST}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASS}
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./create-db.sql:/docker-entrypoint-initdb.d/create_database.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_HOST}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb
+    environment:
+      POSTGRES_DB: ${TIMESCALE_NAME}
+      POSTGRES_USER: ${TIMESCALE_USER}
+      POSTGRES_PASSWORD: ${TIMESCALE_PASS}
+    ports:
+      - "5435:5432"
+    volumes:
+      - tsdbdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - app-network
+    command: ["redis-server", "--appendonly", "yes"]
+
+volumes:
+  redisdata:
+  pgdata:
+  tsdbdata:
+  kafka_data:
+
+networks:
+  app-network:
+    driver: bridge
