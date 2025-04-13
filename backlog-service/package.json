@@ -1,0 +1,33 @@
+{
+  "name": "backlog-service",
+  "version": "0.0.1",
+  "description": "Backlog service for checking for messages that have not been processed in the DB and pushing them to the queue",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npx tsc --outDir dist",
+    "start": "npx ts-node-dev --respawn src/index.ts",
+    "test": "NODE_ENV=test jest --testTimeout=5000 --detectOpenHandles"
+  },
+  "keywords": [
+    "Backlog",
+    "ecoplanet"
+  ],
+  "author": "Aniekan Offiong (ekanoffiong@gmail.com)",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "kafkajs": "^2.2.4",
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.3",
+    "typeorm": "^0.3.21"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.14.0",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^4.5.2"
+  }
+}
