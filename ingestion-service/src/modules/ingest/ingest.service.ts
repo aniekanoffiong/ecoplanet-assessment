@@ -15,6 +15,7 @@ const IngestService = {
     await producer.connect();
     const topic = process.env.KAFKA_INGESTION_TOPIC as string;
     const messages = [{ value: JSON.stringify(data) }]
+    console.info(`Sending payload to topic --- `, messages, topic)
     producer.send({
       topic, messages
     });

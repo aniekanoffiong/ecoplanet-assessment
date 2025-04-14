@@ -8,7 +8,7 @@ export class Device {
   id: number
 
   @Column({name: "title", type: 'varchar'})
-  title: String
+  title: string
 
   @ManyToOne(() => Location)
   @JoinColumn({ name: "location_id" })

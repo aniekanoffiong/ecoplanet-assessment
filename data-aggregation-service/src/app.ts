@@ -2,8 +2,8 @@ import 'reflect-metadata';
 import express, { Application, NextFunction, Request, Response } from 'express';
 import HttpException from './exceptions/http.exception';
 import validationMiddleware from './middlewares/validation.middleware';
-import IngestDTO from './modules/aggregate/dtos/ingest.dto';
 import AggregateController from './modules/aggregate/aggregate.controller';
+import AggregateQueryDTO from './modules/aggregate/dtos/aggregateQuery.dto';
 
 const app: Application = express();
 app.set('etag', false);
@@ -12,7 +12,7 @@ app.set('x-powered-by', false);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.use('/aggregates', validationMiddleware(IngestDTO), AggregateController.aggregates);
+app.get('/aggregates', validationMiddleware(AggregateQueryDTO), AggregateController.aggregates);
 
 app.use((_req: Request, res: Response): Response => {
   return res.status(404).send({ status: 404, data: null, message: 'Not Found' });

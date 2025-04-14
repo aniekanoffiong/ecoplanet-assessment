@@ -16,14 +16,14 @@ export class ConsumptionAggregate {
   @PrimaryColumn({name: "device_id", type: 'int'})
   deviceId!: number
 
-  @Column('decimal', { precision: 10, scale: 10 })
-  value!: number
-
-  @Column({name: 'company_id', type: 'int'})
+  @PrimaryColumn({name: 'company_id', type: 'int'})
   companyId: number
 
-  @Column({name: 'location_id', type: 'int'})
+  @PrimaryColumn({name: 'location_id', type: 'int'})
   locationId: number
+
+  @Column('decimal', { precision: 10, scale: 10 })
+  value!: number
 
   @TimeColumn()
   timestamp!: Date

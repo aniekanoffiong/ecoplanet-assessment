@@ -8,7 +8,7 @@ export class Location {
   id: number
 
   @Column('varchar')
-  name: String
+  name: string
 
   @ManyToOne(() => Company)
   @JoinColumn({ name: "company_id" })

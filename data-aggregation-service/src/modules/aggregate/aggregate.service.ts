@@ -9,6 +9,7 @@ import monthAggregateRepository from './repositories/monthAggregate.repository';
 import { MonthAggregate } from './entities/monthAggregate.entity';
 import { ConsumptionLogDTO } from './dtos/consumptionLog.dto';
 import { Kafka, KafkaMessage } from 'kafkajs';
+import hourlyAggregateRepository from './repositories/hourlyAggregate.repository';
 
 dotenv.config();
 
@@ -19,15 +20,15 @@ const AggregateService = {
       clientId: 'data-aggregate-service', 
       brokers,
     });
-    const topic = process.env.KAFKA_INGESTION_TOPIC as string;
+    const topic = process.env.KAFKA_AGGREGATE_TOPIC as string;
     const consumer = client.consumer({ groupId: 'data-aggregate-consumer' });
     await consumer.connect()
     await consumer.subscribe({ topic, fromBeginning: true })
     await consumer.run({
       eachMessage: async ({ message }: { message: KafkaMessage }) => {
-        console.log('retrieved ingest message for timeseries', message);
         if (message.value) {
           let data: ConsumptionLogDTO = JSON.parse(message.value.toString());
+          console.info(`pulled data from aggregate topic --- `, data)
           if (await AggregateService._validateMessage(data)) {
             await AggregateService._saveDataInTimeSeriesDB(data)
           }
@@ -48,9 +49,9 @@ const AggregateService = {
     await consumer.subscribe({ topic, fromBeginning: true })
     await consumer.run({
       eachMessage: async ({ message }: { message: KafkaMessage }) => {
-        console.log('retrieved backlog message', message);
         if (message.value) {
           let data: ConsumptionLogDTO = JSON.parse(message.value.toString());
+          console.info(`pulled data from backlog topic --- `, data)
           AggregateService._saveDataInTimeSeriesDB(data)
         }
       },
@@ -58,21 +59,40 @@ const AggregateService = {
   },
 
   retrieveAggregates: async function (data: AggregateQueryDTO): Promise<MonthAggregate[]> {
-    let queryBuilder = monthAggregateRepository
-      .createQueryBuilder()
-      .where('start >= :start', { start: data.start })
-      .andWhere('end >= :end', { end: data.end });
-    if (data.companyId) {
-      queryBuilder = queryBuilder.andWhere('companyId = :companyId', { companyId: data.companyId })
+    try {
+      let queryBuilder = hourlyAggregateRepository
+        .createQueryBuilder()
+        .where('bucket >= :start', { start: data.start })
+        .andWhere('bucket <= :end', { end: data.end });
+      if (data.companyId) {
+        queryBuilder = queryBuilder.andWhere(
+          'company_id = :companyId',
+          { companyId: data.companyId }
+        )
+      }
+      if (data.locationId) {
+        queryBuilder = queryBuilder.andWhere(
+          'location_id = :locationId',
+          { locationId: data.locationId }
+        )
+      }
+      if (data.companyId) {
+        queryBuilder = queryBuilder.groupBy(data.companyId.toString())
+      }
+      if (data.locationId) {
+        queryBuilder = queryBuilder.groupBy(data.locationId.toString())
+      }
+      const result = await queryBuilder.getRawMany();
+      console.log(`successfully retrieved data from aggregates --- `, result)
+      return result;
+    } catch (err) {
+      console.error(`Query failed --- `, err)
     }
-    if (data.locationId) {
-      queryBuilder = queryBuilder.andWhere('locationId = :locationId', { locationId: data.locationId })
-    }
-    return queryBuilder.getMany();
+    return []
   },
 
   _validateMessage: async function(data: IngestDTO): Promise<boolean> {
-    const transformedClass: object = plainToInstance(IngestDTO, { data });
+    const transformedClass: object = plainToInstance(IngestDTO, data);
     const errors = await validate(transformedClass);
     if (errors.length > 0) {
       return false;
@@ -81,8 +101,13 @@ const AggregateService = {
   },
 
   _saveDataInTimeSeriesDB: async function(data: ConsumptionLogDTO) {
-    const aggregate: ConsumptionAggregate = await aggregateRepository.create(data);
-    aggregateRepository.save(aggregate);
+    try {
+      const aggregateData: ConsumptionAggregate = await aggregateRepository.create(data);
+      const aggregate = await aggregateRepository.save(aggregateData);
+      console.log(`successfully persisted aggregate data --- `, aggregate)
+    } catch (err) {
+      console.log(`Unable to persist data in timeseries`, err)
+    }
   },
 };
 

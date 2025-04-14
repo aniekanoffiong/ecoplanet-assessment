@@ -4,14 +4,14 @@ import { AggregateType } from '@timescaledb/schemas'
 
 @ContinuousAggregate(ConsumptionAggregate, {
   name: 'month_aggregate',
-  bucket_interval: '1 month',
+  bucket_interval: '1 hour',
   refresh_policy: {
-    start_offset: '3 days',
+    start_offset: '1 day',
     end_offset: '1 hour',
-    schedule_interval: '1 hour',
+    schedule_interval: '30 minute',
   },
 })
-export class MonthAggregate {
+export class HourlyAggregate {
   @BucketColumn({
     source_column: 'timestamp',
   })

@@ -5,7 +5,7 @@ import ValidationException from '../exceptions/validation.exception';
 
 const validationMiddleware = (schema: ClassConstructor<object>) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
-    console.log("Data received ---", req.body)
+    console.log("Data received validation ---", req.body)
     const transformedClass: object = plainToInstance(schema, { ...req.body });
     const errors = await validate(transformedClass);
     if (errors.length > 0) {

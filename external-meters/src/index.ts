@@ -5,10 +5,8 @@ import ExternalMeterService from './modules/externalMeter/externalMeter.service'
 
 dotenv.config();
 
-const secondInterval: number = 10
-
 console.log(`Starting external meter platform --- `, new Date().toISOString())
-cron.schedule(`${secondInterval} * * * * *`, () => {
-  console.log(`running the external meter task every ${secondInterval} seconds`, new Date().toISOString());
+cron.schedule(`0,20,40 * * * * *`, () => {
+  console.log(`running the external meter task every 0,20,40 seconds`, new Date().toISOString());
   ExternalMeterService.trigger();
 });

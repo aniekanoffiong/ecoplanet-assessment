@@ -7,7 +7,7 @@ export class Company {
   id: number
 
   @Column("varchar")
-  name: String
+  name: string
 
   @OneToMany(() => Location, (location) => location.company)
   locations: Location[]

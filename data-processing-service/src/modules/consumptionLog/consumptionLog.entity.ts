@@ -17,5 +17,5 @@ export class ConsumptionLog {
   timestamp: Date
 
   @Column({name: 'is_processed', type: 'boolean'})
-  isProcessed: Boolean = false;
+  isProcessed: boolean = false;
 }

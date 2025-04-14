@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { DataSource } from "typeorm";
 import { ConsumptionAggregate } from '../modules/aggregate/entities/aggregate.entity';
 import { MonthAggregate } from '../modules/aggregate/entities/monthAggregate.entity';
+import { HourlyAggregate } from 'src/modules/aggregate/entities/hourlyAggregate.entity';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const TimescaleDataSource = new DataSource({
   database: process.env.TIMESCALE_NAME,
   synchronize: true,
   logging: false,
-  entities: [ConsumptionAggregate, MonthAggregate],
+  entities: [ConsumptionAggregate, MonthAggregate, HourlyAggregate],
   migrations: [],
 })
 

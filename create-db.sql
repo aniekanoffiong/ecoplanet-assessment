@@ -1,5 +1,3 @@
-CREATE DATABASE ecoplanetdb;
-
 CREATE TABLE company (
   id SERIAL PRIMARY KEY,
   name VARCHAR NOT NULL
@@ -20,7 +18,7 @@ CREATE TABLE device (
 CREATE TABLE consumption_log (
   id SERIAL PRIMARY KEY,
   device_id INTEGER REFERENCES device(id) ON DELETE SET NULL,
-  value DECIMAL(10, 10) NOT NULL,
+  value NUMERIC(20, 18) NOT NULL,
   timestamp TIMESTAMPTZ NOT NULL,
   is_processed BOOLEAN DEFAULT FALSE
 );

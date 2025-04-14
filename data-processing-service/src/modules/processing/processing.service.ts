@@ -24,11 +24,11 @@ const ProcessingService = {
     await consumer.subscribe({ topic, fromBeginning: true })
     await consumer.run({
       eachMessage: async ({ message }: { message: KafkaMessage }) => {
-        console.log(`kafka ingestion message retrieved --- `, message);
         if (message.value) {
           let data: IngestDTO = JSON.parse(message.value.toString());
-          if (await ProcessingService._validateMessage(data)) {
-            console.info(`data validated as IngestDTO --- `, data)
+          const validateMessage = await ProcessingService._validateMessage(data)
+          console.log(`content of data retrieved and validate --- `, data, validateMessage)
+          if (validateMessage) {
             await ProcessingService._processForAggregateQueue(data)
             await ProcessingService._persistToDB(data);
           }
@@ -38,7 +38,7 @@ const ProcessingService = {
   },
 
   _validateMessage: async function(data: IngestDTO): Promise<boolean> {
-    const transformedClass: object = plainToInstance(IngestDTO, { data });
+    const transformedClass: object = plainToInstance(IngestDTO, data);
     const errors = await validate(transformedClass);
     if (errors.length > 0) {
       return false;
@@ -53,11 +53,12 @@ const ProcessingService = {
       await ProcessingService._writeToReviewQueue(data);
       return;
     }
-    ProcessingService._writeToAggregateQueue({
+    const finalData = {
       ...data,
       locationId: companyAndLocation.locationId,
       companyId: companyAndLocation.companyId,
-    })
+    }
+    ProcessingService._writeToAggregateQueue(finalData)
   },
 
   _writeToReviewQueue: async function(data: IngestDTO) {
@@ -97,6 +98,7 @@ const ProcessingService = {
       return JSON.parse(cachedData)
     }
     const dataFromDB = await ProcessingService._fetchDataFromDatabase(deviceId)
+    console.log(`data from database Query --- `, dataFromDB)
     if (dataFromDB) {
       cacheClient.set(deviceId.toString(), JSON.stringify(dataFromDB))
       return dataFromDB
@@ -105,7 +107,12 @@ const ProcessingService = {
   },
 
   _getRedisClient: async function() {
-    return await createClient()
+    return await createClient({
+        socket: {
+          host: process.env.REDIS_HOST,
+          port: 6379,
+        }
+      })
       .on('error', err => console.log('Redis Client Error', err))
       .connect();
   },
@@ -115,9 +122,9 @@ const ProcessingService = {
       .createQueryBuilder("consumptionLog")
       .innerJoin("consumptionLog.device", "device")
       .innerJoin("device.location", "location")
-      .select("location.companyId", 'companyId')
+      .select("location.company_id", 'companyId')
       .addSelect("location.id", 'locationId')
-      .where("consumptionLog.deviceId = :deviceId", { deviceId })
+      .where("consumptionLog.device_id = :deviceId", { deviceId })
       .getRawOne()
   },
 

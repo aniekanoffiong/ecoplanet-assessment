@@ -1,6 +1,14 @@
-import { IsDateString, IsNumber, IsOptional } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 class AggregateQueryDTO {
+  @IsNotEmpty()
+  @IsDateString()
+  start: string;
+
+  @IsNotEmpty()
+  @IsDateString()
+  end: string;
+
   @IsOptional()
   @IsNumber()
   companyId?: number | undefined;
@@ -8,14 +16,6 @@ class AggregateQueryDTO {
   @IsOptional()
   @IsNumber()
   locationId?: number | undefined;
-
-  @IsOptional()
-  @IsDateString()
-  start?: string | undefined;
-
-  @IsOptional()
-  @IsDateString()
-  end?: string | undefined;
 }
 
 export default AggregateQueryDTO;
