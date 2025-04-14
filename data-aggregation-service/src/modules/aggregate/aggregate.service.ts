@@ -5,7 +5,6 @@ import { plainToInstance } from 'class-transformer';
 import AggregateQueryDTO from './dtos/aggregateQuery.dto';
 import aggregateRepository from './repositories/aggregate.repository';
 import { ConsumptionAggregate } from './entities/aggregate.entity';
-import monthAggregateRepository from './repositories/monthAggregate.repository';  
 import { MonthAggregate } from './entities/monthAggregate.entity';
 import { ConsumptionLogDTO } from './dtos/consumptionLog.dto';
 import { Kafka, KafkaMessage } from 'kafkajs';
